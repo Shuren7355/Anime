@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Anime Search</title>
+    <style>
+        /* Your CSS styles here */
+    </style>
+</head>
+<body>
+    <h1>Anime Search</h1>
+    <input type="text" id="searchInput" placeholder="Enter an anime title">
+    <button id="searchButton">Search</button>
+    <div id="animeInfo">
+        <!-- Anime information will be displayed here -->
+    </div>
+<div id="videoContainer">
+    <!-- YouTube video will be embedded here -->
+</div>
+    <script>
+        // JavaScript code to fetch anime data from multiple APIs and display it
+        const searchInput = document.getElementById("searchInput");
+        const searchButton = document.getElementById("searchButton");
+        const animeInfo = document.getElementById("animeInfo");
+
+        searchButton.addEventListener("click", () => {
+            const searchTerm = searchInput.value;
+            if (searchTerm) {
+                // Use Jikan API
+                fetch(`https://api.jikan.moe/v3/search/anime?q=${searchTerm}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Display anime information from Jikan API
+                        const jikanResult = data.results[0];
+                        const genres = jikanResult.genres.map(genre => genre.name).join(", ");
+                        animeInfo.innerHTML = `
+                            <h2>Jikan API Result</h2>
+                            <p>Title: ${jikanResult.title}</p>
+                            <p>Episodes: ${jikanResult.episodes}</p>
+                            <p>Score: ${jikanResult.score}</p>
+                            <p>Genres: ${genres}</p>
+                            <p>Synopsis: ${jikanResult.synopsis}</p>
+                            <img src="${jikanResult.image_url}" alt="Anime Poster">
+                            <!-- Add more details as needed -->
+                        `;
+                    })
+                    .catch(error => {
+                        console.error("Error fetching data from Jikan:", error);
+                    });
+
+                // Use Kitsu API
+                fetch(`https://kitsu.io/api/edge/anime?filter[text]=${searchTerm}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Display anime information from Kitsu API
+                        const kitsuResult = data.data[0];
+                        const description = kitsuResult.attributes.description || "Not available";
+                        const genres = kitsuResult.attributes.genres.map(genre => genre.name).join(", ");
+                        animeInfo.innerHTML += `
+                            <h2>Kitsu API Result</h2>
+                            <p>Title: ${kitsuResult.attributes.titles.en}</p>
+                            <p>Episodes: ${kitsuResult.attributes.episodeCount || "Not available"}</p>
+                            <p>Rating: ${kitsuResult.attributes.averageRating || "Not available"}</p>
+                            <p>Genres: ${genres}</p>
+                            <p>Description: ${description}</p>
+                            <img src="${kitsuResult.attributes.posterImage.original}" alt="Anime Poster">
+                            <!-- Add more details as needed -->
+                        `;
+                    })
+                    .catch(error => {
+                        console.error("Error fetching data from Kitsu:", error);
+                    });
+
+                // Use AniList API
+                fetch(`https://graphql.anilist.co`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: `
+                            query {
+                                Page {
+                                    media(search: "${searchTerm}", type: ANIME) {
+                                        title {
+                                            english
+                                        }
+                                        episodes
+                                        averageScore
+                                        description
+                                        genres
+                                        coverImage {
+                                            large
+                                        }
+                                    }
+                                }
+                            }
+                        `,
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Display anime information from AniList API
+                    const anilistResult = data.data.Page.media[0];
+                    const genres = anilistResult.genres.join(", ");
+                    animeInfo.innerHTML += `
+                        <h2>AniList API Result</h2>
+                        <p>Title: ${anilistResult.title.english || "Not available"}</p>
+                        <p>Episodes: ${anilistResult.episodes || "Not available"}</p>
+                        <p>Average Score: ${anilistResult.averageScore || "Not available"}</p>
+                        <p>Genres: ${genres || "Not available"}</p>
+                        <p>Description: ${anilistResult.description || "Not available"}</p>
+                        <img src="${anilistResult.coverImage.large || "No image available"}" alt="Anime Poster">
+                        <!-- Add more details as needed -->
+                    `;
+                })
+                .catch(error => {
+                    console.error("Error fetching data from AniList:", error);
+                });
+            }
+        });
+        
+        // Function to embed YouTube video
+    function embedYouTubeVideo(videoId) {
+        const videoContainer = document.getElementById("videoContainer");
+        videoContainer.innerHTML = `
+            <iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
+        `;
+    }
+    </script>
+</body>
+</html>
